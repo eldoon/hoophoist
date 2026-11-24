@@ -51,6 +51,7 @@ const char* DIR_DOWN_BITS = "10";
 #define SERVICE_UUID      "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CMD_CHAR_UUID     "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define STATUS_CHAR_UUID  "beb5483f-36e1-4688-b7f5-ea07361b26a8"
+#define NAMES_CHAR_UUID   "beb54840-36e1-4688-b7f5-ea07361b26a8"
 #define DEFAULT_PASSKEY   0          // Default 6-digit OS Bluetooth pairing passkey ("000000")
 
 // ============================================================================
@@ -160,6 +161,8 @@ bool     ledBlinkOn = false;
 uint32_t ledBlinkNextMs = 0;
 
 BLECharacteristic* pStatusChar = nullptr;
+BLECharacteristic* pNamesChar  = nullptr;
+String hoopNames[9];
 bool bleConnected = false;
 bool statusDirty = false;
 
@@ -203,6 +206,19 @@ void notifyBleStatus() {
     pStatusChar->notify();
   }
   statusDirty = false;
+}
+
+void updateNamesCharacteristic(bool doNotify = true) {
+  if (!pNamesChar) return;
+  String joined = "";
+  for (int i = 0; i < 9; i++) {
+    if (i > 0) joined += "|";
+    joined += hoopNames[i];
+  }
+  pNamesChar->setValue((uint8_t*)joined.c_str(), joined.length());
+  if (doNotify && bleConnected) {
+    pNamesChar->notify();
+  }
 }
 
 void stopTransmission(const char* reason) {
@@ -307,6 +323,29 @@ class CmdCallbacks : public BLECharacteristicCallbacks {
       return;
     }
 
+    if (cmd.startsWith("NAMES:")) {
+      String payload = cmd.substring(6);
+      int idx = 0;
+      int start = 0;
+      while (idx < 9 && start <= payload.length()) {
+        int sep = payload.indexOf('|', start);
+        String part = (sep == -1) ? payload.substring(start) : payload.substring(start, sep);
+        part.trim();
+        if (part.length() > 18) part = part.substring(0, 18);
+        if (part.length() == 0) part = "Hoop " + String(idx + 1);
+        hoopNames[idx] = part;
+        char kbuf[4];
+        snprintf(kbuf, sizeof(kbuf), "n%d", idx);
+        prefs.putString(kbuf, hoopNames[idx]);
+        idx++;
+        if (sep == -1) break;
+        start = sep + 1;
+      }
+      updateNamesCharacteristic(true);
+      Serial.println("[BLE] Saved custom hoop names to NVS");
+      return;
+    }
+
     if (cmd.startsWith("KEY:")) {
       String k = cmd.substring(4);
       k.trim();
@@ -374,6 +413,12 @@ void setup() {
   blePasskey = prefs.getUInt("passkey", DEFAULT_PASSKEY);
   if (blePasskey > 999999) blePasskey = DEFAULT_PASSKEY;
 
+  for (int i = 0; i < 9; i++) {
+    char kbuf[4];
+    snprintf(kbuf, sizeof(kbuf), "n%d", i);
+    hoopNames[i] = prefs.getString(kbuf, "Hoop " + String(i + 1));
+  }
+
   pinMode(CC1101_CSN, OUTPUT);
   digitalWrite(CC1101_CSN, HIGH);
   SPI.begin(CC1101_SCK, CC1101_MISO, CC1101_MOSI, CC1101_CSN);
@@ -408,8 +453,18 @@ void setup() {
   p2902->setAccessPermissions(ESP_GATT_PERM_READ_ENC_MITM | ESP_GATT_PERM_WRITE_ENC_MITM);
   pStatusChar->addDescriptor(p2902);
 
+  pNamesChar = pService->createCharacteristic(
+    NAMES_CHAR_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+  );
+  pNamesChar->setAccessPermissions(ESP_GATT_PERM_READ_ENC_MITM);
+  BLE2902* pNames2902 = new BLE2902();
+  pNames2902->setAccessPermissions(ESP_GATT_PERM_READ_ENC_MITM | ESP_GATT_PERM_WRITE_ENC_MITM);
+  pNamesChar->addDescriptor(pNames2902);
+
   pService->start();
   notifyBleStatus();
+  updateNamesCharacteristic(false);
 
   BLEAdvertising* pAdv = BLEDevice::getAdvertising();
   pAdv->addServiceUUID(SERVICE_UUID);

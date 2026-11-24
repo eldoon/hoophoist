@@ -487,10 +487,12 @@ const redhawk = window.mountRedhawk ? window.mountRedhawk(document.getElementByI
 const SERVICE_UUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
 const CMD_UUID     = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 const STATUS_UUID  = 'beb5483f-36e1-4688-b7f5-ea07361b26a8';
+const NAMES_UUID   = 'beb54840-36e1-4688-b7f5-ea07361b26a8';
 
 let bleDevice = null;
 let cmdChar = null;
 let statusChar = null;
+let namesChar = null;
 let currentCh = 1;
 let runDurationSec = 300;
 let activeTotalSec = 300;
@@ -522,21 +524,39 @@ function buildHoopNameInputs() {
   }
 }
 
-function saveHoopNames() {
+function applyNamesString(str) {
+  const parts = str.split('|');
+  if (parts.length === 9) {
+    hoopNames = parts.map((p, i) => p.trim() || `Hoop ${i + 1}`);
+    localStorage.setItem('gt_hoop_names', JSON.stringify(hoopNames));
+    buildHoopNameInputs();
+    refreshChannelLabels();
+  }
+}
+
+async function saveHoopNames() {
   for (let i = 1; i <= 9; i++) {
-    const v = document.getElementById(`hname-${i}`).value.trim();
+    const v = document.getElementById(`hname-${i}`).value.trim().replace(/\|/g, '');
     hoopNames[i - 1] = v || `Hoop ${i}`;
   }
   localStorage.setItem('gt_hoop_names', JSON.stringify(hoopNames));
   refreshChannelLabels();
-  showToast('Hoop names saved');
+  if (cmdChar) {
+    await sendBLE('NAMES:' + hoopNames.join('|'));
+    showToast('Hoop names synced to ESP32');
+  } else {
+    showToast('Hoop names saved locally');
+  }
 }
 
-function resetHoopNames() {
+async function resetHoopNames() {
   hoopNames = Array.from({ length: 9 }, (_, i) => `Hoop ${i + 1}`);
   localStorage.removeItem('gt_hoop_names');
   buildHoopNameInputs();
   refreshChannelLabels();
+  if (cmdChar) {
+    await sendBLE('NAMES:' + hoopNames.join('|'));
+  }
   showToast('Reset to Hoop 1–9');
 }
 
@@ -636,6 +656,16 @@ async function connectBLE() {
       handleStatus(dec.decode(e.target.value));
     });
 
+    try {
+      namesChar = await service.getCharacteristic(NAMES_UUID);
+      await namesChar.startNotifications();
+      namesChar.addEventListener('characteristicvaluechanged', e => {
+        applyNamesString(dec.decode(e.target.value));
+      });
+      const initNames = await namesChar.readValue();
+      applyNamesString(dec.decode(initNames));
+    } catch (_) {}
+
     const initialVal = await statusChar.readValue();
     handleStatus(dec.decode(initialVal));
 
@@ -652,6 +682,7 @@ async function connectBLE() {
 function onDisconnected() {
   cmdChar = null;
   statusChar = null;
+  namesChar = null;
   initialized = false;
   const chip = document.getElementById('bleBtn');
   chip.classList.remove('connected');
