@@ -1,8 +1,8 @@
-# Goal Tender BLE Remote
+# HoopHoist
 
 An **ESP32 + CC1101** Sub-GHz controller with a **Web Bluetooth** interface (`index.html`) and physical button support for automating timed raises/lowers on 316.50 MHz Goal Tender basketball hoop systems.
 
-- **Live Web Bluetooth App:** https://eldoon.github.io/goal-tender-remote/
+- **Live Web Bluetooth App:** https://hoophoist.com
   *(Works in Chrome on macOS/Android, or the Bluefy browser on iOS/iPadOS.)*
 
 ---

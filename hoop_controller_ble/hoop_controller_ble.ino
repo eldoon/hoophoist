@@ -47,7 +47,7 @@ const char* DIR_DOWN_BITS = "10";
 // ============================================================================
 // BLE GATT UUIDs & PIN SECURITY (Match ble_remote.html)
 // ============================================================================
-#define BLE_DEVICE_NAME   "Gym-Hoop-BLE"
+#define BLE_DEVICE_NAME   "HoopHoist"
 #define SERVICE_UUID      "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CMD_CHAR_UUID     "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define STATUS_CHAR_UUID  "beb5483f-36e1-4688-b7f5-ea07361b26a8"
@@ -472,7 +472,7 @@ void setup() {
   BLEDevice::startAdvertising();
 
   Serial.println("\n=======================================================");
-  Serial.println("   🏀 GOAL TENDER BLE CONTROLLER (316.50 MHz HT6026)   ");
+  Serial.println("   🏀 HOOPHOIST BLE CONTROLLER (316.50 MHz HT6026)     ");
   Serial.println("=======================================================");
   Serial.printf("  CC1101 Status : VERSION 0x%02X (%.2f MHz)\n", cc1101Version, RF_FREQ_MHZ);
   Serial.printf("  BLE Name      : %s\n", BLE_DEVICE_NAME);

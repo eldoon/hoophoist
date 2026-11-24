@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Red Hawks • Goal Tender Remote</title>
+<title>HoopHoist</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -371,7 +371,7 @@
 <header class="appbar">
   <div class="appbar-title">
     <div id="redhawkAvatar" title="Tap me!" style="width:64px;height:64px;flex-shrink:0;"></div>
-    <span>Goal Tender</span>
+    <span>HoopHoist</span>
   </div>
   <div class="appbar-right">
     <button class="ble-chip" id="bleBtn" onclick="connectBLE()">
@@ -642,7 +642,7 @@ async function connectBLE() {
   }
   try {
     bleDevice = await navigator.bluetooth.requestDevice({
-      filters: [{ name: 'Gym-Hoop-BLE' }],
+      filters: [{ name: 'HoopHoist' }, { name: 'Gym-Hoop-BLE' }],
       optionalServices: [SERVICE_UUID]
     });
     bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
@@ -673,7 +673,7 @@ async function connectBLE() {
     chip.classList.add('connected');
     document.getElementById('bleBtnText').textContent = 'Connected';
     setControlsEnabled(true);
-    showToast('Connected to Gym-Hoop-BLE');
+    showToast('Connected to ' + (bleDevice.name || 'HoopHoist'));
   } catch (err) {
     console.error(err);
   }
