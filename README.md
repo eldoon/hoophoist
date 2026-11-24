@@ -1,4 +1,8 @@
-# HoopHoist
+<p align="center">
+  <img src="assets/hoophoist-logo.svg" alt="HoopHoist Logo" width="110" />
+</p>
+
+<h1 align="center">HoopHoist</h1>
 
 An **ESP32 + CC1101** Sub-GHz controller with a **Web Bluetooth** interface (`index.html`) and physical button support for automating timed raises/lowers on 316.50 MHz Goal Tender basketball hoop systems.
 
